@@ -118,7 +118,7 @@ def _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir,
     print("Done preprocessing %s.\n" % dataset_name)
 
 
-def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=False):
+def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=True):
     for dataset_name in librispeech_datasets["train"]["other"]:
         # Initialize the preprocessing
         dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
@@ -131,7 +131,7 @@ def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=Fal
                                  skip_existing, logger)
 
 
-def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, skip_existing=False):
+def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, skip_existing=True):
     # Initialize the preprocessing
     dataset_name = "VoxCeleb1"
     dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
@@ -161,7 +161,7 @@ def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, skip_existing=False
                              skip_existing, logger)
 
 
-def preprocess_voxceleb2(datasets_root: Path, out_dir: Path, skip_existing=False):
+def preprocess_voxceleb2(datasets_root: Path, out_dir: Path, skip_existing=True):
     # Initialize the preprocessing
     dataset_name = "VoxCeleb2"
     dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
