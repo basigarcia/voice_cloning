@@ -29,6 +29,9 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out_dir", type=Path, default=argparse.SUPPRESS, help=\
         "Path to the output directory that will contain the mel spectrograms. If left out, "
         "defaults to <datasets_root>/SV2TTS/encoder/")
+    parser.add_argument("-ot", "--out_dir_test", type=Path, default=argparse.SUPPRESS, help=\
+    	"Path to the output directory that will contain the mel spectrograms. If left out, "
+   		"defaults to <datasets_root>/SV2TTS_test/encoder/")
     parser.add_argument("-d", "--datasets", type=str, 
                         default="librispeech_other,voxceleb1,voxceleb2", help=\
         "Comma-separated list of the name of the datasets you want to preprocess. Only the train "
@@ -43,9 +46,11 @@ if __name__ == "__main__":
     args.datasets = args.datasets.split(",")
     if not hasattr(args, "out_dir"):
         args.out_dir = args.datasets_root.joinpath("SV2TTS", "encoder")
+        args.out_dir_test = args.datasets_root.joinpath("SV2TTS_test", "encoder")
     assert args.datasets_root.exists()
     args.out_dir.mkdir(exist_ok=True, parents=True)
-    
+    args.out_dir_test.mkdir(exist_ok=True, parents=True)
+
     # Preprocess the datasets
     print_args(args, parser)
     preprocess_func = {

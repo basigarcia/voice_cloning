@@ -118,7 +118,7 @@ def _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir,
     print("Done preprocessing %s.\n" % dataset_name)
 
 
-def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=True):
+def preprocess_librispeech(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
     for dataset_name in librispeech_datasets["train"]["other"]:
         # Initialize the preprocessing
         dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
@@ -131,7 +131,7 @@ def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=Tru
                                  skip_existing, logger)
 
 
-def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, skip_existing=True):
+def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
     # Initialize the preprocessing
     dataset_name = "VoxCeleb1"
     dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
@@ -157,11 +157,15 @@ def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, skip_existing=True)
           (len(speaker_dirs), len(keep_speaker_ids) - len(speaker_dirs)))
 
     # Preprocess all speakers
-    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "wav",
+    # _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "wav",
+    #                          skip_existing, logger)
+
+    # Test sets.
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir_test, "wav",
                              skip_existing, logger)
 
 
-def preprocess_voxceleb2(datasets_root: Path, out_dir: Path, skip_existing=True):
+def preprocess_voxceleb2(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
     # Initialize the preprocessing
     dataset_name = "VoxCeleb2"
     dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
@@ -172,4 +176,9 @@ def preprocess_voxceleb2(datasets_root: Path, out_dir: Path, skip_existing=True)
     # Preprocess all speakers
     speaker_dirs = list(dataset_root.joinpath("dev", "aac").glob("*"))
     _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "m4a",
+                             skip_existing, logger)
+
+    # Test sets.
+    speaker_dirs = list(dataset_root.joinpath("test", "aac").glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir_test, "m4a",
                              skip_existing, logger)
