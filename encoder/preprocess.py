@@ -118,17 +118,38 @@ def _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir,
     print("Done preprocessing %s.\n" % dataset_name)
 
 
-def preprocess_librispeech(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
-    for dataset_name in librispeech_datasets["train"]["other"]:
-        # Initialize the preprocessing
-        dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
-        if not dataset_root:
-            return 
-        
-        # Preprocess all speakers
-        speaker_dirs = list(dataset_root.glob("*"))
-        _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "flac",
-                                 skip_existing, logger)
+def preprocess_librispeech_clean(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
+    dataset_name = "LibriSpeech"
+    # Initialize the preprocessing
+    dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
+    if not dataset_root:
+        return 
+    
+    # Preprocess all speakers
+    speaker_dirs = list(dataset_root.joinpath("train-clean-100").glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "flac",
+                             skip_existing, logger)
+
+    speaker_dirs = list(dataset_root.joinpath("test-clean").glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir_test, "flac",
+                             skip_existing, logger)
+
+def preprocess_librispeech_other(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
+    # Initialize the preprocessing
+    dataset_name = "LibriSpeech"
+    dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
+    if not dataset_root:
+        return 
+    
+    # Preprocess all speakers
+    speaker_dirs = list(dataset_root.joinpath("train-other-500").glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "flac",
+                             skip_existing, logger)
+
+    speaker_dirs = list(dataset_root.joinpath("test-other").glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir_test, "flac",
+                             skip_existing, logger)
+    return
 
 
 def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, out_dir_test: Path, skip_existing=True):
@@ -161,6 +182,9 @@ def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, out_dir_test: Path,
     #                          skip_existing, logger)
 
     # Test sets.
+    speaker_dirs = dataset_root.joinpath("test_wav").glob("*")
+    speaker_dirs = [speaker_dir for speaker_dir in speaker_dirs if
+                speaker_dir.name in keep_speaker_ids]
     _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir_test, "wav",
                              skip_existing, logger)
 
