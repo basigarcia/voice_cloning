@@ -11,10 +11,12 @@ if __name__ == "__main__":
     )
     
     parser.add_argument("run_id", type=str, help= \
-        "Name for this model instance. It must be a already trained model")
+        "Name for this model instance. It must be a already trained model.")
     parser.add_argument("test_data_root", type=Path, help= \
         "Path to the output directory of encoder_preprocess.py. If you left the default "
         "output directory when preprocessing, it should be <datasets_root>/SV2TTS/encoder/.")
+    parser.add_argument("-m", "--models_dir", type=Path, default="encoder/saved_models/", help=\
+        "Path to the directory that will contain the saved model weights.")
     args = parser.parse_args()
     
     # Process the arguments
