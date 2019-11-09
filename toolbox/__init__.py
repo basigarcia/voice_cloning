@@ -8,7 +8,7 @@ from toolbox.utterance import Utterance
 import numpy as np
 import traceback
 import sys
-
+import librosa
 
 # Use this directory structure for your datasets, or modify it to fit your needs
 recognized_datasets = [
@@ -226,6 +226,11 @@ class Toolbox:
         # Plot it
         self.ui.draw_embed(embed, name, "generated")
         self.ui.draw_umap_projections(self.utterances)
+        
+        # Save the generated file
+        fpath = "demo_output_toolbox.wav"
+        librosa.output.write_wav(fpath, wav.astype(np.float32), Synthesizer.sample_rate)
+        print("\nSaved output as %s\n\n" % fpath)
         
     def init_encoder(self):
         model_fpath = self.ui.current_encoder_fpath
