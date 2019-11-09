@@ -24,11 +24,11 @@ class SpeakerEncoder(nn.Module):
         self.relu = torch.nn.ReLU().to(device)
         
         # Cosine similarity scaling (with fixed initial parameter values)
-        self.similarity_weight = nn.Parameter(torch.tensor([10.])).to(loss_device)
-        self.similarity_bias = nn.Parameter(torch.tensor([-5.])).to(loss_device)
+        self.similarity_weight = nn.Parameter(torch.tensor([10.]))
+        self.similarity_bias = nn.Parameter(torch.tensor([-5.]))
 
         # Loss
-        self.loss_fn = nn.CrossEntropyLoss().to(loss_device)
+        self.loss_fn = nn.CrossEntropyLoss()
         
     def do_gradient_ops(self):
         # Gradient scale
@@ -88,8 +88,8 @@ class SpeakerEncoder(nn.Module):
         mask_matrix = 1 - np.eye(speakers_per_batch, dtype=np.int)
         for j in range(speakers_per_batch):
             mask = np.where(mask_matrix[j])[0]
-            sim_matrix[mask, :, j] = (embeds[mask] * centroids_incl[j]).sum(dim=2)
-            sim_matrix[j, :, j] = (embeds[j] * centroids_excl[j]).sum(dim=1)
+            sim_matrix[mask, :, j] = (embeds[mask] * centroids_incl[j]).sum(dim=2).to(self.loss_device)
+            sim_matrix[j, :, j] = (embeds[j] * centroids_excl[j]).sum(dim=1).to(self.loss_device)
         
         ## Even more vectorized version (slower maybe because of transpose)
         # sim_matrix2 = torch.zeros(speakers_per_batch, speakers_per_batch, utterances_per_speaker
@@ -101,7 +101,7 @@ class SpeakerEncoder(nn.Module):
         # sim_matrix2[mask] = (embeds * centroids_excl).sum(dim=2)
         # sim_matrix2 = sim_matrix2.transpose(1, 2)
         
-        sim_matrix = sim_matrix * self.similarity_weight + self.similarity_bias
+        sim_matrix = sim_matrix * self.similarity_weight.to(self.loss_device) + self.similarity_bias.to(self.loss_device)
         return sim_matrix
     
     def loss(self, embeds):
@@ -117,7 +117,7 @@ class SpeakerEncoder(nn.Module):
         # Loss
         sim_matrix = self.similarity_matrix(embeds)
         sim_matrix = sim_matrix.reshape((speakers_per_batch * utterances_per_speaker, 
-                                         speakers_per_batch))
+                                         speakers_per_batch)).to(self.loss_device)
         ground_truth = np.repeat(np.arange(speakers_per_batch), utterances_per_speaker)
         target = torch.from_numpy(ground_truth).long().to(self.loss_device)
         loss = self.loss_fn(sim_matrix, target)
