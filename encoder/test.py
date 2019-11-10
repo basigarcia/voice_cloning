@@ -107,10 +107,8 @@ def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Pa
                 cosine_similarity_total += batch_similarity_sum
 
             counter += 1
-            if idx % 10 == 0:
+            if idx % 100 == 0:
                 print("Batch %d/%d done." % (idx, len(loader) / (speakers_per_batch * utterances_per_speaker)))
-            if idx >= 150:
-                break
         
         print("EER for model \"%s\" = %.4f" % (run_id, eer_total / counter))
         if run_id_baseline:
