@@ -84,7 +84,7 @@ def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, l
 			[encoder_name, testset_name, speaker_id, file_name, 
 			(len(synthesized_wav)/sampling_rate), similarity])
 	result_list.append(
-		[encoder_name, testset_name, "ALL", "ALL", running_cos_similarity / running_count])
+		[encoder_name, testset_name, "ALL", "ALL", "ALL", running_cos_similarity / running_count])
 
 	# Write results.
 	if os.path.exists(csv_path):
