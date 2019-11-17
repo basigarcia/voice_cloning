@@ -62,4 +62,7 @@ if __name__ == "__main__":
     args = vars(args)
     for dataset in args.pop("datasets"):
         print("Preprocessing %s" % dataset)
-        preprocess_func[dataset](**args)
+        try:
+            preprocess_func[dataset](**args)
+        except ValueError:
+            print("Reach end of dataset.")

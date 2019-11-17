@@ -126,6 +126,7 @@ def preprocess_librispeech_clean(datasets_root: Path, out_dir: Path, out_dir_tes
         return 
     
     # Preprocess all speakers
+    print(dataset_root)
     speaker_dirs = list(dataset_root.joinpath("train-clean-100").glob("*"))
     _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "flac",
                              skip_existing, logger)
@@ -178,8 +179,8 @@ def preprocess_voxceleb1(datasets_root: Path, out_dir: Path, out_dir_test: Path,
           (len(speaker_dirs), len(keep_speaker_ids) - len(speaker_dirs)))
 
     # Preprocess all speakers
-    # _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "wav",
-    #                          skip_existing, logger)
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, "wav",
+                             skip_existing, logger)
 
     # Test sets.
     speaker_dirs = dataset_root.joinpath("test_wav").glob("*")
