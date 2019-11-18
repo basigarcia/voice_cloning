@@ -14,41 +14,45 @@ import os
 import scipy.spatial.distance as distance
 import csv
 
-def synth(encoder, vocoder, synthesizer, input_wav):
+def synth_and_eval(test_encoder, vocoder, synthesizer, input_wav, base_encoder):
   text = "This is being said in my own voice.  The computer has learned to do an impression of me." #@param {type:"string"}
   in_fpath = Path(input_wav)
   # reprocessed_wav = encoder.preprocess_wav(in_fpath)
   original_wav, sampling_rate = librosa.load(in_fpath)
   preprocessed_wav = encoder.preprocess_wav(original_wav, sampling_rate)
-  embed = encoder.embed_utterance(preprocessed_wav)
+  embed = encoder.embed_utterance(preprocessed_wav, model=test_encoder)
+  base_embed = encoder.embed_utterance(preprocessed_wav, model=base_encoder)
   print("\nSynthesizing new audio...")
   with io.capture_output() as captured:
     specs = synthesizer.synthesize_spectrograms([text], [embed])
   generated_wav = vocoder.infer_waveform(specs[0])
   generated_wav = np.pad(generated_wav, (0, synthesizer.sample_rate), mode="constant")
 
-  # Generate embedding for synthesized utterance (with same encoder).
-  preprocessed_wav = encoder.preprocess_wav(generated_wav, sampling_rate)
-  synth_embed = encoder.embed_utterance(preprocessed_wav)
+  # Generate embedding for synthesized utterance (with pretrained encoder).
+  preprocessed_gen_wav = encoder.preprocess_wav(generated_wav, sampling_rate)
+  synth_embed = encoder.embed_utterance(preprocessed_gen_wav, model=base_encoder)
 
   # Compare original and synthesized embeddings.
-  cosine_similarity = distance.cosine(embed, synth_embed)
+  cosine_similarity = distance.cosine(base_embed, synth_embed)
 
   return generated_wav, synthesizer.sample_rate, cosine_similarity
 
-def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, low_mem):
+def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, low_mem, base_enc_model_dir):
 	"""Tests a model end-to-end with a given small dataset.
 	Loads the encoder, vocoder, and synthesizers and runs a set of utterances through them
 	to generate synthesized versions of those utterances. Then computes the cosine
 	similarity between the original/synthesized pairs and outputs the results to a
 	csv file.
 
-	Synthesizing utterances is slow, so it takes aboug 2x input length in time to run. It
+	Synthesizing utterances is slow, so it takes aboug 4x input length in time to run. It
 	is recommended to only use this with small sets of a handful of utterances at a time.
 	"""
+	encoder.set_device()
 	encoder_weights = Path(enc_model_dir)
+	base_encoder_weights = Path(base_enc_model_dir)
 	vocoder_weights = Path(voc_model_dir)
-	encoder.load_model(encoder_weights)
+	base_encoder = encoder.get_model(base_encoder_weights)
+	test_encoder = encoder.get_model(encoder_weights)
 	synthesizer = Synthesizer(syn_model_dir)
 	vocoder.load_model(vocoder_weights)
 
@@ -75,8 +79,8 @@ def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, l
 		output_path.mkdir(exist_ok=True)
 		output_path = os.path.join(output_path, output_name)
 
-		synthesized_wav, sampling_rate, similarity = synth(
-			encoder, vocoder, synthesizer, audio_file)
+		synthesized_wav, sampling_rate, similarity = synth_and_eval(
+			test_encoder, vocoder, synthesizer, audio_file, base_encoder)
 		librosa.output.write_wav(output_path, synthesized_wav.astype(np.float32), sampling_rate)
 		running_cos_similarity += similarity
 		running_count += 1
@@ -117,6 +121,8 @@ if __name__ == '__main__':
     parser.add_argument("--low_mem", action="store_true", help=\
         "If True, the memory used by the synthesizer will be freed after each use. Adds large "
         "overhead but allows to save some GPU memory for lower-end GPUs.")
+    parser.add_argument("-b", "--base_enc_model_dir", type=Path, default="encoder/saved_models/pretrained.pt", 
+    	help="Directory containing saved encoder models")
     args = parser.parse_args()
 
     # Launch the toolbox

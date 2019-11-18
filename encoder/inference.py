@@ -11,6 +11,9 @@ import torch
 _model = None # type: SpeakerEncoder
 _device = None # type: torch.device
 
+def set_device():
+    global _device
+    _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def load_model(weights_fpath: Path, device=None):
     """
@@ -34,13 +37,33 @@ def load_model(weights_fpath: Path, device=None):
     _model.load_state_dict(checkpoint["model_state"])
     _model.eval()
     print("Loaded encoder \"%s\" trained to step %d" % (weights_fpath.name, checkpoint["step"]))
+    return _model
+
+def get_model(weights_fpath: Path, device=None):
+    """
+    Loads the model in memory. If this function is not explicitely called, it will be run on the 
+    first call to embed_frames() with the default weights file.
+    
+    :param weights_fpath: the path to saved model weights.
+    :param device: either a torch device or the name of a torch device (e.g. "cpu", "cuda"). The 
+    model will be loaded and will run on this device. Outputs will however always be on the cpu. 
+    If None, will default to your GPU if it"s available, otherwise your CPU.
+    """
+    # TODO: I think the slow loading of the encoder might have something to do with the device it
+    #   was saved on. Worth investigating.
+    model = SpeakerEncoder(_device, torch.device("cpu"))
+    checkpoint = torch.load(weights_fpath)
+    model.load_state_dict(checkpoint["model_state"])
+    model.eval()
+    print("Loaded encoder \"%s\" trained to step %d" % (weights_fpath.name, checkpoint["step"]))
+    return model
     
     
 def is_loaded():
     return _model is not None
 
 
-def embed_frames_batch(frames_batch):
+def embed_frames_batch(frames_batch, model=None):
     """
     Computes embeddings for a batch of mel spectrogram.
     
@@ -48,11 +71,13 @@ def embed_frames_batch(frames_batch):
     (batch_size, n_frames, n_channels)
     :return: the embeddings as a numpy array of float32 of shape (batch_size, model_embedding_size)
     """
-    if _model is None:
+    if model is None:
+        model = _model
+    if _model is None and model is None:
         raise Exception("Model was not loaded. Call load_model() before inference.")
     
     frames = torch.from_numpy(frames_batch).to(_device)
-    embed = _model.forward(frames).detach().cpu().numpy()
+    embed = model.forward(frames).detach().cpu().numpy()
     return embed
 
 
@@ -108,7 +133,7 @@ def compute_partial_slices(n_samples, partial_utterance_n_frames=partials_n_fram
     return wav_slices, mel_slices
 
 
-def embed_utterance(wav, using_partials=True, return_partials=False, **kwargs):
+def embed_utterance(wav, using_partials=True, return_partials=False, model=None, **kwargs):
     """
     Computes an embedding for a single utterance.
     
@@ -128,9 +153,12 @@ def embed_utterance(wav, using_partials=True, return_partials=False, **kwargs):
     instead.
     """
     # Process the entire utterance if not using partials
+    if model is None:
+        print("\n\n\n\n\nDidn't find model, will use preloaded.\n\n\n\n\n\n")
+        model = _model
     if not using_partials:
         frames = audio.wav_to_mel_spectrogram(wav)
-        embed = embed_frames_batch(frames[None, ...])[0]
+        embed = embed_frames_batch(frames[None, ...], model)[0]
         if return_partials:
             return embed, None, None
         return embed
@@ -144,7 +172,7 @@ def embed_utterance(wav, using_partials=True, return_partials=False, **kwargs):
     # Split the utterance into partials
     frames = audio.wav_to_mel_spectrogram(wav)
     frames_batch = np.array([frames[s] for s in mel_slices])
-    partial_embeds = embed_frames_batch(frames_batch)
+    partial_embeds = embed_frames_batch(frames_batch, model)
     
     # Compute the utterance embedding from the partial embeddings
     raw_embed = np.mean(partial_embeds, axis=0)
