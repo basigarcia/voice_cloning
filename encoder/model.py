@@ -7,19 +7,22 @@ from scipy.optimize import brentq
 from torch import nn
 import numpy as np
 import torch
-
+from torchvision import models
 
 class SpeakerEncoder(nn.Module):
     def __init__(self, device, loss_device):
         super().__init__()
         self.loss_device = loss_device
         
+        resnet = models.resnet50(pretrained=True).to(device)
+        self.resnet_features = nn.Sequential(*list(resnet.children())[:-1])
+        self.resnet_intermediate = nn.Sequential(
+            nn.Linear(resnet.fc.in_features, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, 1024),
+            nn.ReLU()).to(device)
         # Network defition
-        self.lstm = nn.LSTM(input_size=mel_n_channels,
-                            hidden_size=model_hidden_size, 
-                            num_layers=model_num_layers, 
-                            batch_first=True).to(device)
-        self.linear = nn.Linear(in_features=model_hidden_size, 
+        self.linear = nn.Linear(in_features=1024, 
                                 out_features=model_embedding_size).to(device)
         self.relu = torch.nn.ReLU().to(device)
         
@@ -50,10 +53,13 @@ class SpeakerEncoder(nn.Module):
         """
         # Pass the input through the LSTM layers and retrieve all outputs, the final hidden state
         # and the final cell state.
-        out, (hidden, cell) = self.lstm(utterances, hidden_init)
+
+        conv_out = self.resnet_features(utterances)
+        conv_out = conv_out.view(conv_out.size(0), -1)
+        conv_out = self.resnet_intermediate(conv_out)
         
         # We take only the hidden state of the last layer
-        embeds_raw = self.relu(self.linear(hidden[-1]))
+        embeds_raw = self.relu(self.linear(conv_out))
         
         # L2-normalize it
         embeds = embeds_raw / torch.norm(embeds_raw, dim=1, keepdim=True)
