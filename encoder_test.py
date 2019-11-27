@@ -10,7 +10,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("run_id", type=str, help= \
-        "Name for this model instance. It must be a already trained model")
         "Name for this model instance. It must be a already trained model.")
     parser.add_argument("test_data_root", type=Path, help= \
         "Path to the output directory of encoder_preprocess.py. If you left the default "
