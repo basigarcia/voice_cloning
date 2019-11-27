@@ -28,8 +28,7 @@ def cosine_similarity(new_embeds, baseline_embeds):
     cos_similarity = cos(flat_new_embeds, flat_baseline_embeds)
     return cos_similarity
 
-
-def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Path):
+def cosine_similarity_test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Path):
     with torch.no_grad():
         # Create a dataset and a dataloader
         dataset = SpeakerVerificationDataset(test_data_root)
@@ -114,3 +113,56 @@ def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Pa
         if run_id_baseline:
             print("EER for model \"%s\" = %.4f" % (run_id_baseline, eer_baseline_total / counter))
             print("Cosine similarity between both = %.4f" % (cosine_similarity_total / counter))
+
+def test(run_id: str, test_data_root: Path, models_dir: Path):
+    # Create a dataset and a dataloader
+    dataset = SpeakerVerificationDataset(test_data_root)
+    loader = SpeakerVerificationDataLoader(
+        dataset,
+        speakers_per_batch,
+        utterances_per_speaker,
+        num_workers=8,
+    )
+
+    # Setup the device on which to run the forward pass and the loss. These can be different, 
+    # because the forward pass is faster on the GPU whereas the loss is often (depending on your
+    # hyperparameters) faster on the CPU.
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # FIXME: currently, the gradient is None if loss_device is cuda
+    loss_device = torch.device("cpu")
+
+    # Create the model
+    model = SpeakerEncoder(device, loss_device)
+
+    # Configure file path for the model
+    state_fpath = models_dir.joinpath(run_id + ".pt")
+
+    # Load the model
+    if state_fpath.exists():
+        print("Found model \"%s\", loading it." % run_id)
+        checkpoint = torch.load(state_fpath)
+        model.load_state_dict(checkpoint["model_state"])
+    else:
+        print("No model \"%s\" found." % run_id)
+        return
+    model.eval()
+
+    # Testing loop
+    counter = 0
+    eer_total = 0
+    for speaker_batch in loader:
+
+        # Forward pass
+        inputs = torch.from_numpy(speaker_batch.data).to(device)
+        sync(device)
+        embeds = model(inputs)
+        sync(device)
+        embeds_loss = embeds.view((speakers_per_batch, utterances_per_speaker, -1)).to(loss_device)
+        loss, eer = model.loss(embeds_loss)
+        sync(loss_device)
+        eer_total += eer
+        counter += 1
+        if counter >= 150:
+            break
+
+    print(eer_total / counter) 
