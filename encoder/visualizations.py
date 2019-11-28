@@ -32,8 +32,6 @@ class Visualizations:
         self.step_times = []
         self.losses = []
         self.eers = []
-        self.test_eer = []
-        self.test_loss = []
         print("Updating the visualizations every %d steps." % update_every)
         
         # If visdom is disabled TODO: use a better paradigm for that
@@ -59,8 +57,6 @@ class Visualizations:
         # Create the windows
         self.loss_win = None
         self.eer_win = None
-        self.test_loss_win = None
-        self.test_eer_win = None
         # self.lr_win = None
         self.implementation_win = None
         self.projection_win = None
@@ -155,42 +151,6 @@ class Visualizations:
         self.losses.clear()
         self.eers.clear()
         self.step_times.clear()
-
-    def test_update(self, test_loss, test_eer, step):
-        # Update the tracking data
-        self.test_loss.append(test_loss)
-        self.test_eer.append(test_eer)
-        
-        # Update the plots every <update_every> steps
-        if not self.disabled:
-            self.test_loss_win = self.vis.line(
-                [np.mean(self.test_loss)],
-                [step],
-                win=self.test_loss_win,
-                update="append" if self.test_loss_win else None,
-                opts=dict(
-                    legend=["Avg. test loss"],
-                    xlabel="Step",
-                    ylabel="Loss",
-                    title="Test Loss",
-                )
-            )
-            self.test_eer_win = self.vis.line(
-                [np.mean(self.test_eers)],
-                [step],
-                win=self.test_eer_win,
-                update="append" if self.test_eer_win else None,
-                opts=dict(
-                    legend=["Avg. test EER"],
-                    xlabel="Step",
-                    ylabel="EER",
-                    title="Test Equal Error Rate"
-                )
-            )
-
-        # Reset the tracking
-        self.test_loss.clear()
-        self.test_eer.clear()
         
     def draw_projections(self, embeds, utterances_per_speaker, step, out_fpath=None,
                          max_speakers=10):

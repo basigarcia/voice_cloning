@@ -13,22 +13,14 @@ def sync(device: torch.device):
     if device.type == "cuda":
         torch.cuda.synchronize(device)
 
-def train(run_id: str, train_data_root: Path, test_data_root: Path, models_dir: Path, umap_every: int, save_every: int,
+def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int, save_every: int,
           backup_every: int, vis_every: int, force_restart: bool, visdom_server: str,
           no_visdom: bool):
     # Create a dataset and a dataloader
-    train_dataset = SpeakerVerificationDataset(train_data_root)
-    train_loader = SpeakerVerificationDataLoader(
-        train_dataset,
+    dataset = SpeakerVerificationDataset(clean_data_root)
+    loader = SpeakerVerificationDataLoader(
+        dataset,
         speakers_per_batch,
-        utterances_per_speaker,
-        num_workers=8,
-    )
-
-    test_dataset = SpeakerVerificationDataset(test_data_root)
-    test_loader = SpeakerVerificationDataLoader(
-        test_dataset,
-        speakers_per_batch / 2,
         utterances_per_speaker,
         num_workers=8,
     )
@@ -66,14 +58,14 @@ def train(run_id: str, train_data_root: Path, test_data_root: Path, models_dir: 
     
     # Initialize the visualization environment
     vis = Visualizations(run_id, vis_every, server=visdom_server, disabled=no_visdom)
-    vis.log_dataset(train_dataset)
+    vis.log_dataset(dataset)
     vis.log_params()
     device_name = str(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU")
     vis.log_implementation({"Device": device_name})
     
     # Training loop
     profiler = Profiler(summarize_every=10, disabled=False)
-    for step, speaker_batch in enumerate(train_loader, init_step):
+    for step, speaker_batch in enumerate(loader, init_step):
         profiler.tick("Blocking, waiting for batch (threaded)")
         
         # Forward pass
@@ -102,34 +94,6 @@ def train(run_id: str, train_data_root: Path, test_data_root: Path, models_dir: 
         
         # Draw projections and save them to the backup folder
         if umap_every != 0 and step % umap_every == 0:
-            model.eval()
-
-            # Testing loop
-            counter = 0
-            eer_total = 0
-            loss_total = 0
-            for speaker_batch in test_loader:
-
-                # Forward pass
-                inputs = torch.from_numpy(speaker_batch.data).to(device)
-                sync(device)
-                embeds = model(inputs)
-                sync(device)
-                embeds_loss = embeds.view((speakers_per_batch, utterances_per_speaker, -1)).to(loss_device)
-                loss, eer = model.loss(embeds_loss)
-                sync(loss_device)
-                eer_total += eer
-                loss_total += loss
-                counter += 1
-                if counter >= 150:
-                    break
-
-            test_eer = eer_total / counter
-            test_loss = loss_total / counter
-
-            vis.test_update(test_loss, test_eer, step)
-            model.train()
-
             print("Drawing and saving projections (step %d)" % step)
             backup_dir.mkdir(exist_ok=True)
             projection_fpath = backup_dir.joinpath("%s_umap_%06d.png" % (run_id, step))
