@@ -28,7 +28,7 @@ def train(run_id: str, train_data_root: Path, test_data_root: Path, models_dir: 
     test_dataset = SpeakerVerificationDataset(test_data_root)
     test_loader = SpeakerVerificationDataLoader(
         test_dataset,
-        speakers_per_batch // 2,
+        speakers_per_batch / 2,
         utterances_per_speaker,
         num_workers=8,
     )
