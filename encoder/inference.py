@@ -4,6 +4,7 @@ from encoder.audio import preprocess_wav   # We want to expose this function fro
 from matplotlib import cm
 from encoder import audio
 from pathlib import Path
+from encoder.data_objects.speaker_batch import get_3d_spec
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -76,7 +77,8 @@ def embed_frames_batch(frames_batch, model=None):
     if _model is None and model is None:
         raise Exception("Model was not loaded. Call load_model() before inference.")
     
-    frames = torch.from_numpy(frames_batch).to(_device)
+    frames_batch_3d = np.array([get_3d_spec(u) for u in frames_batch])
+    frames = torch.from_numpy(frames_batch_3d).to(_device)
     embed = model.forward(frames).detach().cpu().numpy()
     return embed
 
