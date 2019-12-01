@@ -13,8 +13,7 @@
 *.bbl
 *.bcf
 *.toc
-*.wav
+/*.wav
 encoder/saved_models/*/
 synthesizer/saved_models/*
 vocoder/saved_models/*
-!audio_samples/*.wav
