@@ -1,9 +1,9 @@
 # Audio Samples.
 https://drive.google.com/drive/folders/1DbgzNrN08PplglN6Dn8mz-_qp2-jTFw3?usp=sharing
 
-Authors Voices: samples synthesized through the existing UI by recording ourselves.
-CNN encoder: samples synthesized from test data with CNN encoder architecture.
-TestSetVoices: samples generated with a variety of models for VoxCeleb, VoxCeleb2, LibriSpeech-clean, LibriSpeech-other, by running full_test.py.
+* Authors Voices: samples synthesized through the existing UI by recording ourselves.
+* CNN encoder: samples synthesized from test data with CNN encoder architecture.
+* TestSetVoices: samples generated with a variety of models for VoxCeleb, VoxCeleb2, LibriSpeech-clean, LibriSpeech-other, by running full_test.py.
 
 # Real-Time Voice Cloning
 This repository is an implementation of [Transfer Learning from Speaker Verification to
