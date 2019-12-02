@@ -37,16 +37,8 @@ def synth_and_eval(test_encoder, vocoder, synthesizer, input_wav, base_encoder):
 
   return generated_wav, synthesizer.sample_rate, cosine_similarity
 
-def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, low_mem, base_enc_model_dir):
-	"""Tests a model end-to-end with a given small dataset.
-	Loads the encoder, vocoder, and synthesizers and runs a set of utterances through them
-	to generate synthesized versions of those utterances. Then computes the cosine
-	similarity between the original/synthesized pairs and outputs the results to a
-	csv file.
 
-	Synthesizing utterances is slow, so it takes aboug 4x input length in time to run. It
-	is recommended to only use this with small sets of a handful of utterances at a time.
-	"""
+def TestFull(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, low_mem, base_enc_model_dir):
 	encoder.set_device()
 	encoder_weights = Path(enc_model_dir)
 	base_encoder_weights = Path(base_enc_model_dir)
@@ -103,6 +95,24 @@ def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, l
 	print("\n-------Overall cosine similarity-------")
 	print("%.4f" % (running_cos_similarity / running_count))
 
+
+def TestFullSystem(datasets_root, enc_model_dir, syn_model_dir, voc_model_dir, low_mem, base_enc_model_dir):
+	"""Tests a model end-to-end with a given small dataset.
+	Loads the encoder, vocoder, and synthesizers and runs a set of utterances through them
+	to generate synthesized versions of those utterances. Then computes the cosine
+	similarity between the original/synthesized pairs and outputs the results to a
+	csv file.
+
+	Synthesizing utterances is slow, so it takes aboug 4x input length in time to run. It
+	is recommended to only use this with small sets of a handful of utterances at a time.
+	"""
+	encoder_models = list(enc_model_dir.glob("*.pt"))
+	datasets = list(datasets_root.glob("*"))
+	for encoder_model in encoder_models:
+		for dataset in datasets:
+			TestFull(dataset, encoder_model, syn_model_dir, voc_model_dir, low_mem, base_enc_model_dir)
+	
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Tests the entire system.",
@@ -110,9 +120,9 @@ if __name__ == '__main__':
     )
     
     parser.add_argument("-d", "--datasets_root", type=Path, help= \
-        "Path to the datasets. i.e. ../../Datasets/FullTest/VoxCeleb2",
+        "Path to the datasets. i.e. ../../Datasets/FullTest",
                         default=None)
-    parser.add_argument("-e", "--enc_model_dir", type=Path, default="encoder/saved_models/pretrained.pt", 
+    parser.add_argument("-e", "--enc_model_dir", type=Path, default="encoder/saved_models", 
                         help="Directory containing saved encoder models")
     parser.add_argument("-s", "--syn_model_dir", type=Path, default="synthesizer/saved_models/logs-pretrained/taco_pretrained", 
                         help="Directory containing saved synthesizer models")

@@ -19,6 +19,8 @@ if __name__ == "__main__":
         "output directory when preprocessing, it should be <datasets_root>/SV2TTS/encoder/.")
     parser.add_argument("-m", "--models_dir", type=Path, default="encoder/saved_models/", help=\
         "Path to the directory that will contain the saved model weights.")
+    parser.add_argument("-a", "--test_full", type=bool, default=False, help=\
+        "Whether to test all models in model_dir, will ignore run_id.")
     # parser.add_argument("compute_similarity", type=bool, help= \
     #     "Wheter to compute cosine similarity between the embeddings of the pairs of models in models_dir.")
     args = parser.parse_args()

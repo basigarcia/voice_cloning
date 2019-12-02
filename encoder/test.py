@@ -5,6 +5,8 @@ from utils.profiler import Profiler
 from pathlib import Path
 from tqdm import tqdm
 import torch
+import csv
+import os
 
 def sync(device: torch.device):
     # FIXME
@@ -28,8 +30,23 @@ def cosine_similarity(new_embeds, baseline_embeds):
     cos_similarity = cos(flat_new_embeds, flat_baseline_embeds)
     return cos_similarity
 
+def test_all(run_id_baseline: str, test_data_root: Path, models_dir: Path):
+    model_paths = list(models_dir.glob("*.pt"))
+    test_paths = list(test_data_root.glob("*"))
+    for model in model_paths:
+        # Remove .pt from name.
+        model_id = os.path.basename(model)[:-3]
+        for test_path in test_paths:
+            preprocessed_dir = Path(os.path.join(test_path, "SV2TTS_test/encoder"))
+            print("Testing model %s on dir %s." % (model_id, preprocessed_dir))
+            test(model_id, run_id_baseline, preprocessed_dir, models_dir, False)
 
-def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Path):
+
+
+def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Path, test_full: bool):
+    if test_full:
+        test_all(run_id_baseline, test_data_root, models_dir)
+        return
     with torch.no_grad():
         # Create a dataset and a dataloader
         dataset = SpeakerVerificationDataset(test_data_root)
@@ -109,8 +126,25 @@ def test(run_id: str, run_id_baseline: str, test_data_root: Path, models_dir: Pa
             counter += 1
             if idx % 100 == 0:
                 print("Batch %d/%d done." % (idx, len(loader) / (speakers_per_batch * utterances_per_speaker)))
-        
+            if idx == 1000 or idx == (len(loader)/5):
+                break
+
+        csv_path = os.path.join(models_dir, "results.csv")
         print("EER for model \"%s\" = %.4f" % (run_id, eer_total / counter))
         if run_id_baseline:
             print("EER for model \"%s\" = %.4f" % (run_id_baseline, eer_baseline_total / counter))
             print("Cosine similarity between both = %.4f" % (cosine_similarity_total / counter))
+
+        result_list = []
+        result_list.append([run_id, test_data_root, eer_total / counter, float(cosine_similarity_total / counter)])
+
+
+        # Write results.
+        if os.path.exists(csv_path):
+            with open(csv_path, "a") as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerows(result_list)
+        else:
+            with open(csv_path, "w") as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerows(result_list)
